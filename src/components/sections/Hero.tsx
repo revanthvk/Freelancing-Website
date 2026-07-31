@@ -22,14 +22,14 @@ export function Hero() {
       className="relative w-full overflow-hidden"
       style={{ background: "#000000", height: "100vh", minHeight: "100vh", maxHeight: "100vh" }}
     >
-      {/* Background video — preload="none" defers network cost until after page is interactive */}
+      {/* Background video */}
       <video
         src="/video/hero-bg.mp4"
         autoPlay
         loop
         muted
         playsInline
-        preload="none"
+        preload="auto"
         style={{
           position: "absolute",
           top: 0,
