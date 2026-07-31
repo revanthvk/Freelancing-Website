@@ -2,42 +2,38 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, RotateCcw } from "lucide-react";
+import { X, Sparkles, RotateCcw, MessageCircle } from "lucide-react";
 import ClaudeChatInput from "@/components/ui/claude-style-chat-input";
 import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-/* ── Animated robot image — floating 3-D effect ─────────────────────────── */
+/* ── Floating trigger — gradient orb, matches the chat panel's own header ── */
 function RobotButton({ visible, onClick }: { visible: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       aria-label="Open AI chatbot"
-      className="fixed bottom-4 right-4 z-50 transition-all duration-300"
+      className="fixed bottom-6 right-6 z-50 transition-all duration-300"
       style={{
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
         transform: visible ? "scale(1)" : "scale(0.7)",
-        background: "transparent",
-        border: "none",
-        cursor: "pointer",
       }}
     >
-      {/* Robot image — static, clickable */}
-      <motion.img
-        src="/robot.png"
-        alt="AI Assistant"
-        width={110}
-        height={110}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="relative"
-        style={{
-          objectFit: "contain",
-          filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.5))",
-        }}
-      />
+      <motion.div
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        className="relative grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-purple-500 to-violet-600 shadow-2xl shadow-black/50"
+      >
+        <motion.span
+          aria-hidden
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-violet-600"
+          animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <MessageCircle size={26} className="relative text-white" strokeWidth={2} />
+      </motion.div>
     </button>
   );
 }

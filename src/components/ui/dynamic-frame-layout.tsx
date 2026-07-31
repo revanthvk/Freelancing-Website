@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface Frame {
@@ -17,31 +17,43 @@ interface DynamicFrameLayoutProps {
   overlay?: (frame: Frame, index: number) => ReactNode;
 }
 
+/** Plays automatically, but only once scrolled near the viewport — with 9 videos
+ * on the page, autoplaying all of them immediately would compete with the Hero
+ * video for bandwidth on load and waste data on cards the visitor hasn't reached. */
 function HoverVideo({ src, isHovered }: { src: string; isHovered: boolean }) {
-  const ref = useRef<HTMLVideoElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
-    const v = ref.current;
-    if (!v) return;
-    if (isHovered) {
-      v.play().catch(() => null);
-    } else {
-      v.pause();
-    }
-  }, [isHovered]);
+    const el = wrapRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <>
-      <video
-        ref={ref}
-        src={src}
-        loop
-        muted
-        playsInline
-        preload="none"
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ transform: "translateZ(0)" }}
-      />
+    <div ref={wrapRef} className="absolute inset-0">
+      {inView && (
+        <video
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ transform: "translateZ(0)" }}
+        />
+      )}
       <div
         className="absolute inset-0 transition-opacity duration-500"
         style={{
@@ -49,7 +61,7 @@ function HoverVideo({ src, isHovered }: { src: string; isHovered: boolean }) {
           opacity: isHovered ? 0.15 : 0.6,
         }}
       />
-    </>
+    </div>
   );
 }
 

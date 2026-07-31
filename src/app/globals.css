@@ -69,8 +69,6 @@
 
   body {
     @apply text-foreground font-sans antialiased;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
     font-feature-settings: "ss01", "cv01", "cv03";
     text-rendering: optimizeLegibility;
     overflow-x: hidden;

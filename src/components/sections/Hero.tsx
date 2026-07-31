@@ -43,11 +43,24 @@ export function Hero() {
         }}
       />
 
-      {/* Dark overlay */}
-      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(5,5,5,0.82)", zIndex: 1 }} />
+      {/* Dark overlay — flat base darkening plus extra depth at the top (behind the
+          navbar/logo) and bottom (behind the description text) so both stay legible
+          regardless of what's playing in the video at that moment */}
+      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(5,5,5,0.78)", zIndex: 1 }} />
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.55) 12%, transparent 30%, transparent 62%, rgba(0,0,0,0.7) 85%, rgba(0,0,0,0.75) 100%)",
+          zIndex: 1,
+        }}
+      />
 
       {/* Content */}
-      <div className="relative flex h-full flex-col justify-between px-6 pb-8 pt-28 lg:px-12 lg:pb-10 lg:pt-32" style={{ zIndex: 2 }}>
+      <div className="relative flex h-full flex-col justify-between px-6 pb-24 pt-28 lg:px-12 lg:pb-10 lg:pt-32" style={{ zIndex: 2 }}>
         <motion.div variants={stagger} initial="hidden" animate="show">
           {/* Availability badge */}
           <motion.div variants={fade} className="mb-12">
