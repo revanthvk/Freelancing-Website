@@ -38,7 +38,7 @@ function AccordionItem({ question, answer }: FAQEntry) {
       >
         <span
           className={cn(
-            "text-base font-medium leading-snug transition-colors duration-200",
+            "min-w-0 text-base font-medium leading-snug transition-colors duration-200",
             open ? "text-white" : "text-neutral-400"
           )}
         >
@@ -92,7 +92,7 @@ export function FAQ({ eyebrow, title, subtitle, categories, faqData, className }
       </div>
 
       <div className="border-gradient mt-14 rounded-3xl bg-card/40 p-6 sm:p-8 lg:p-10">
-        <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:gap-10">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr] lg:gap-10">
           {/* Category tabs */}
           <div className="relative -mx-6 sm:-mx-8 lg:mx-0">
             {/* Fade hint that the row scrolls horizontally — mobile/tablet only */}

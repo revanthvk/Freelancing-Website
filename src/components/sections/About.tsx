@@ -78,7 +78,7 @@ export function About() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="relative hidden lg:block"
+            className="relative mx-auto flex justify-center lg:mx-0 lg:block"
             style={{ perspective: 1000 }}
           >
             {/* Ambient glow, drifts opposite the tilt for depth */}
@@ -130,7 +130,7 @@ export function About() {
 
                 <div
                   style={{ transform: "translateZ(110px)" }}
-                  className="absolute -top-4 -right-16 rounded-xl border border-white/[0.1] bg-background/95 px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur"
+                  className="absolute top-3 right-3 rounded-xl border border-white/[0.1] bg-background/95 px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur lg:-top-4 lg:-right-16"
                 >
                   <p className="text-[11px] font-medium text-neutral-500">Founder</p>
                   <p className="font-display text-sm font-bold text-white">InternSpringBoard.AI</p>
@@ -138,7 +138,7 @@ export function About() {
 
                 <div
                   style={{ transform: "translateZ(110px)" }}
-                  className="absolute -bottom-4 -left-16 rounded-xl border border-white/[0.1] bg-background/95 px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur"
+                  className="absolute bottom-3 left-3 rounded-xl border border-white/[0.1] bg-background/95 px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur lg:-bottom-4 lg:-left-16"
                 >
                   <p className="font-display text-lg font-bold text-white">2+ yrs</p>
                   <p className="text-[11px] text-neutral-500">Building products</p>

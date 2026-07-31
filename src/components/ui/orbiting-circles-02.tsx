@@ -81,7 +81,7 @@ const RINGS: Ring[] = [
 
 export default function OrbitingCirclesGlobeDemo() {
   return (
-    <div className="relative flex h-[38rem] w-full items-center justify-center bg-black md:h-[56rem]">
+    <div className="relative flex h-[22rem] w-full items-center justify-center overflow-hidden bg-black md:h-[56rem] md:overflow-visible">
       <style>{`
         @keyframes orbit-cw {
           from { transform: rotate(var(--start-angle)) }
@@ -108,85 +108,92 @@ export default function OrbitingCirclesGlobeDemo() {
         }
       `}</style>
 
-      {/* Center — dense colorful particle globe */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 w-40 -translate-x-1/2 -translate-y-1/2 md:w-60" style={{ aspectRatio: "1 / 1" }}>
-        <ParticleGlobeAnimation />
-      </div>
+      {/* Scaled wrapper — shrinks the whole diagram as one unit on mobile so no ring/icon
+          extends past the viewport edge; desktop renders at native scale. */}
+      <div
+        className="relative w-[32rem] h-[32rem] scale-[0.6] md:w-[48rem] md:h-[48rem] md:scale-100"
+        style={{ transformOrigin: "center center" }}
+      >
+        {/* Center — dense colorful particle globe */}
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 w-40 -translate-x-1/2 -translate-y-1/2 md:w-60" style={{ aspectRatio: "1 / 1" }}>
+          <ParticleGlobeAnimation />
+        </div>
 
-      {/* Rings */}
-      {RINGS.map((ring) => {
-        const orbitAnim = ring.direction === "cw" ? "orbit-cw" : "orbit-ccw";
-        const counterAnim = ring.direction === "cw" ? "counter-cw" : "counter-ccw";
-        const count = ring.tools.length;
+        {/* Rings */}
+        {RINGS.map((ring) => {
+          const orbitAnim = ring.direction === "cw" ? "orbit-cw" : "orbit-ccw";
+          const counterAnim = ring.direction === "cw" ? "counter-cw" : "counter-ccw";
+          const count = ring.tools.length;
 
-        return (
-          <div
-            key={ring.label}
-            className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.15] ${ring.size}`}
-            style={{ boxShadow: "0 0 16px rgba(56,189,248,0.15), inset 0 0 16px rgba(56,189,248,0.08)" }}
-          >
-            {ring.tools.map((tool, i) => {
-              const Icon = tool.Icon;
-              const angle = (360 / count) * i;
-              const spinDuration = 5 + (i % 5);
+          return (
+            <div
+              key={ring.label}
+              className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.15] ${ring.size}`}
+              style={{ boxShadow: "0 0 16px rgba(56,189,248,0.15), inset 0 0 16px rgba(56,189,248,0.08)" }}
+            >
+              {ring.tools.map((tool, i) => {
+                const Icon = tool.Icon;
+                const angle = (360 / count) * i;
+                const spinDuration = 5 + (i % 5);
 
-              return (
-                <div
-                  key={tool.label}
-                  className="absolute left-1/2 top-0 -ml-6 flex h-1/2 origin-bottom flex-col items-center justify-start md:-ml-8"
-                  style={
-                    {
-                      "--start-angle": `${angle}deg`,
-                      animation: `${orbitAnim} ${ring.duration}s linear infinite`,
-                    } as React.CSSProperties
-                  }
-                >
+                return (
                   <div
-                    className="-mt-6 md:-mt-8"
+                    key={tool.label}
+                    className="absolute left-1/2 top-0 -ml-6 flex h-1/2 origin-bottom flex-col items-center justify-start md:-ml-8"
                     style={
                       {
-                        "--counter-offset": `${-angle}deg`,
-                        animation: `${counterAnim} ${ring.duration}s linear infinite`,
+                        "--start-angle": `${angle}deg`,
+                        animation: `${orbitAnim} ${ring.duration}s linear infinite`,
                       } as React.CSSProperties
                     }
                   >
-                    <a
-                      href={tool.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      title={tool.label}
-                      aria-label={tool.label}
-                      className="tool-orbit-link pointer-events-auto block transition-transform duration-200 hover:scale-125"
-                      style={{ perspective: 400, "--glow": tool.color } as React.CSSProperties}
+                    <div
+                      className="-mt-6 md:-mt-8"
+                      style={
+                        {
+                          "--counter-offset": `${-angle}deg`,
+                          animation: `${counterAnim} ${ring.duration}s linear infinite`,
+                        } as React.CSSProperties
+                      }
                     >
-                      <div
-                        className="relative h-12 w-12 md:h-16 md:w-16"
-                        style={{
-                          transformStyle: "preserve-3d",
-                          animation: `spin-y ${spinDuration}s linear infinite`,
-                        }}
+                      <a
+                        href={tool.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={tool.label}
+                        aria-label={tool.label}
+                        className="tool-orbit-link pointer-events-auto block transition-transform duration-200 hover:scale-125"
+                        style={{ perspective: 400, "--glow": tool.color } as React.CSSProperties}
                       >
-                        <Icon
-                          className="absolute inset-0 h-full w-full p-1.5 md:p-2"
-                          style={{ color: tool.color, backfaceVisibility: "hidden" }}
-                        />
-                        <Icon
-                          className="absolute inset-0 h-full w-full p-1.5 md:p-2"
+                        <div
+                          className="relative h-12 w-12 md:h-16 md:w-16"
                           style={{
-                            color: tool.color,
-                            backfaceVisibility: "hidden",
-                            transform: "rotateY(180deg)",
+                            transformStyle: "preserve-3d",
+                            animation: `spin-y ${spinDuration}s linear infinite`,
                           }}
-                        />
-                      </div>
-                    </a>
+                        >
+                          <Icon
+                            className="absolute inset-0 h-full w-full p-1.5 md:p-2"
+                            style={{ color: tool.color, backfaceVisibility: "hidden" }}
+                          />
+                          <Icon
+                            className="absolute inset-0 h-full w-full p-1.5 md:p-2"
+                            style={{
+                              color: tool.color,
+                              backfaceVisibility: "hidden",
+                              transform: "rotateY(180deg)",
+                            }}
+                          />
+                        </div>
+                      </a>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

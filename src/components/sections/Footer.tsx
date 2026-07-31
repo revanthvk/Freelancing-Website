@@ -178,7 +178,7 @@ export function Footer() {
 
       {/* Bottom bar */}
       <div className="w-full px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 border-t border-white/[0.06] py-8 sm:flex-row">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 border-t border-white/[0.06] pb-28 pt-8 sm:flex-row sm:py-8">
           <p className="text-xs text-neutral-700">
             © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>
