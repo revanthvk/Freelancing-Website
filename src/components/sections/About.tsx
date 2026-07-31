@@ -130,7 +130,7 @@ export function About() {
 
                 <div
                   style={{ transform: "translateZ(110px)" }}
-                  className="absolute top-3 right-3 rounded-xl border border-white/[0.1] bg-background/95 px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur lg:-top-4 lg:-right-16"
+                  className="absolute top-3 right-3 rounded-xl border border-white/[0.1] bg-transparent px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur-sm lg:-top-4 lg:-right-16"
                 >
                   <p className="text-[11px] font-medium text-neutral-500">Founder</p>
                   <p className="font-display text-sm font-bold text-white">InternSpringBoard.AI</p>
@@ -138,7 +138,7 @@ export function About() {
 
                 <div
                   style={{ transform: "translateZ(110px)" }}
-                  className="absolute bottom-3 left-3 rounded-xl border border-white/[0.1] bg-background/95 px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur lg:-bottom-4 lg:-left-16"
+                  className="absolute bottom-3 left-3 rounded-xl border border-white/[0.1] bg-transparent px-4 py-3 shadow-2xl shadow-black/60 backdrop-blur-sm lg:-bottom-4 lg:-left-16"
                 >
                   <p className="font-display text-lg font-bold text-white">2+ yrs</p>
                   <p className="text-[11px] text-neutral-500">Building products</p>

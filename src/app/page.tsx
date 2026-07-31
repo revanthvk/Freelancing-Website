@@ -15,13 +15,11 @@ const FAQ = dynamic(() => import("@/components/sections/FAQ").then((m) => ({ def
 const AIAssistant = dynamic(() => import("@/components/sections/AIAssistant").then((m) => ({ default: m.AIAssistant })));
 const Contact = dynamic(() => import("@/components/sections/Contact").then((m) => ({ default: m.Contact })));
 const Footer = dynamic(() => import("@/components/sections/Footer").then((m) => ({ default: m.Footer })));
-const ChatbotLoader = dynamic(() => import("@/components/sections/ChatbotLoader").then((m) => ({ default: m.ChatbotLoader })));
 
 export default function Home() {
   return (
     <>
       <Navbar />
-      <ChatbotLoader />
       <main id="main">
         <Hero />
         <Marquee />
