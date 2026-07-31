@@ -98,6 +98,22 @@ function Comet({ progress, pathRef }: { progress: MotionValue<number>; pathRef: 
   );
 }
 
+/* ── Mobile dot — same pulse/brighten behavior as the desktop AnimatedDot,
+   but as an HTML circle sitting inline in the stacked list ─────────────── */
+function AnimatedDotMobile({ num, progress, threshold }: { num: string; progress: MotionValue<number>; threshold: number }) {
+  const scale = useTransform(progress, [Math.max(0, threshold - 0.05), threshold], [1, 1.12]);
+  const bg = useTransform(progress, [Math.max(0, threshold - 0.05), threshold], ["#3f3f46", "#ffffff"]);
+  const color = useTransform(progress, [Math.max(0, threshold - 0.05), threshold], ["#a1a1aa", "#000000"]);
+  return (
+    <motion.span
+      style={{ scale, backgroundColor: bg, color }}
+      className="relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold"
+    >
+      {num}
+    </motion.span>
+  );
+}
+
 /* ── Component ───────────────────────────────────────────────────────────── */
 export function Process() {
   const ref = useRef<HTMLDivElement>(null);
@@ -105,8 +121,14 @@ export function Process() {
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.45"] });
   const progress = useSpring(scrollYProgress, { stiffness: 80, damping: 22, mass: 0.6 });
 
+  const mobileRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress: mobileScrollYProgress } = useScroll({ target: mobileRef, offset: ["start 0.8", "end 0.5"] });
+  const mobileProgress = useSpring(mobileScrollYProgress, { stiffness: 80, damping: 22, mass: 0.6 });
+  const cometTop = useTransform(mobileProgress, [0, 1], ["0%", "100%"]);
+
   // rough cumulative thresholds for the "lit" pulse on each dot
   const THRESHOLDS = [0.04, 0.22, 0.40, 0.58, 0.76, 0.95];
+  const MOBILE_THRESHOLDS = STEPS.map((_, i) => (i + 1) / (STEPS.length + 0.5));
 
   return (
     <section
@@ -238,29 +260,39 @@ export function Process() {
           })}
         </div>
 
-        {/* ── Mobile fallback — simple stacked list ────────────────────── */}
-        <div className="space-y-8 md:hidden">
-          {STEPS.map((step, i) => (
-            <motion.div
-              key={step.num}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.05 }}
-              className="flex gap-4"
-            >
-              <div className="flex flex-col items-center">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-xs font-bold text-black">
-                  {step.num}
-                </span>
-                {i < STEPS.length - 1 && <span className="mt-1 w-px flex-1 bg-white/20" />}
-              </div>
-              <div className="pb-2">
-                <h3 className="text-lg font-semibold text-white/90">{step.label}</h3>
-                <p className="mt-1 text-[14px] leading-relaxed text-white/50">{step.desc}</p>
-              </div>
-            </motion.div>
-          ))}
+        {/* ── Mobile — same scroll-synced comet/rail effect, straight vertical layout ── */}
+        <div ref={mobileRef} className="relative md:hidden">
+          {/* Ghost rail */}
+          <div className="absolute left-4 top-4 bottom-4 w-px bg-white/10" />
+          {/* Animated fill rail — draws downward in sync with scroll */}
+          <motion.div
+            className="absolute left-4 top-4 w-px origin-top bg-white/70"
+            style={{ height: "calc(100% - 2rem)", scaleY: mobileProgress }}
+          />
+          {/* Comet traveling down the rail */}
+          <motion.div
+            className="absolute left-4 z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+            style={{ top: cometTop, boxShadow: "0 0 10px 2px rgba(255,255,255,0.55)" }}
+          />
+
+          <div className="space-y-8">
+            {STEPS.map((step, i) => (
+              <motion.div
+                key={step.num}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.05 }}
+                className="flex gap-4"
+              >
+                <AnimatedDotMobile num={step.num} progress={mobileProgress} threshold={MOBILE_THRESHOLDS[i]} />
+                <div className="pb-2 pt-0.5">
+                  <h3 className="text-lg font-semibold text-white/90">{step.label}</h3>
+                  <p className="mt-1 text-[14px] leading-relaxed text-white/50">{step.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
         {/* Closing */}
