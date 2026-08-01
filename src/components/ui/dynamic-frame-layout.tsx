@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface Frame {
@@ -94,6 +94,26 @@ export function DynamicFrameLayout({
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [mostVisibleId, setMostVisibleId] = useState<number | null>(null);
 
+  // A stable-per-id ref callback matters here: an inline arrow function is a
+  // new function every render, so React tears it down and reattaches it on
+  // every single re-render (every hover, every visibility change) — if the
+  // observer effect below happens to run mid-churn, it can end up watching
+  // zero tiles and never recover, leaving every video permanently unloaded.
+  // Cache one callback per id so the same function reference is reused
+  // across renders instead of creating a fresh closure each time.
+  const refCallbacks = useRef<Map<number, (el: HTMLDivElement | null) => void>>(new Map());
+  const getTileRef = useCallback((id: number) => {
+    let cb = refCallbacks.current.get(id);
+    if (!cb) {
+      cb = (el: HTMLDivElement | null) => {
+        if (el) tileRefs.current.set(id, el);
+        else tileRefs.current.delete(id);
+      };
+      refCallbacks.current.set(id, cb);
+    }
+    return cb;
+  }, []);
+
   // Decoding video is expensive, and playing all 9 tiles at once tanks the
   // frame rate on any device. Desktop has real hover, so use that to pick
   // the one active tile (defaulting to the first when nothing's hovered).
@@ -121,8 +141,17 @@ export function DynamicFrameLayout({
       { threshold: [0, 0.25, 0.5, 0.75, 1] }
     );
     tileRefs.current.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [isDesktop, frames.length]);
+    // Fallback: if nothing crosses the 0.3 threshold within a moment (e.g.
+    // small/short tiles on an unusual viewport), just play the first tile
+    // rather than leaving every video permanently blank.
+    const fallback = setTimeout(() => {
+      setMostVisibleId((current) => current ?? frames[0]?.id ?? null);
+    }, 1200);
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallback);
+    };
+  }, [isDesktop, frames]);
 
   const rows: Frame[][] = [];
   for (let i = 0; i < frames.length; i += cols) {
@@ -163,10 +192,7 @@ export function DynamicFrameLayout({
               return (
                 <div
                   key={frame.id}
-                  ref={(el) => {
-                    if (el) tileRefs.current.set(frame.id, el);
-                    else tileRefs.current.delete(frame.id);
-                  }}
+                  ref={getTileRef(frame.id)}
                   data-frame-id={frame.id}
                   className="relative cursor-pointer overflow-hidden rounded-xl bg-neutral-900"
                   onMouseEnter={() => setHovered(frame.id)}
