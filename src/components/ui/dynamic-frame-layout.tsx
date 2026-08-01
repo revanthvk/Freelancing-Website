@@ -84,10 +84,11 @@ export function DynamicFrameLayout({
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [mostVisibleId, setMostVisibleId] = useState<number | null>(null);
 
-  // Decoding video is expensive — on desktop only the hovered tile ever played
-  // anyway, but on mobile there's no hover, and playing all 9 tiles at once
-  // tanks the frame rate. Track which single tile is most visible and only
-  // that one actually plays; everything else stays paused/unloaded.
+  // Decoding video is expensive, and playing all 9 tiles at once tanks the
+  // frame rate on any device. Desktop has real hover, so use that to pick
+  // the one active tile (defaulting to the first when nothing's hovered).
+  // Mobile has no hover and typically sees the grid one row at a time, so
+  // track whichever tile is most visible in the viewport instead.
   useEffect(() => {
     if (isDesktop) return;
     const ratios = new Map<number, number>();
@@ -146,7 +147,9 @@ export function DynamicFrameLayout({
             {row.map((frame, ci) => {
               const globalIndex = ri * cols + ci;
               const isActive = frame.id === hovered;
-              const shouldPlay = isDesktop || frame.id === mostVisibleId;
+              const shouldPlay = isDesktop
+                ? frame.id === (hovered ?? frames[0].id)
+                : frame.id === mostVisibleId;
               return (
                 <div
                   key={frame.id}
