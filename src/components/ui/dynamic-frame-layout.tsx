@@ -17,35 +17,41 @@ interface DynamicFrameLayoutProps {
   overlay?: (frame: Frame, index: number) => ReactNode;
 }
 
-/** Plays automatically, but only once scrolled near the viewport — with 9 videos
- * on the page, autoplaying all of them immediately would compete with the Hero
- * video for bandwidth on load and waste data on cards the visitor hasn't reached. */
-function HoverVideo({ src, isHovered }: { src: string; isHovered: boolean }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    setIsDesktop(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
+}
+
+/** Loads and plays only once `shouldPlay` is true, and pauses (without
+ * unmounting, so it doesn't re-buffer) once it's no longer the active tile. */
+function GridVideo({ src, isHovered, shouldPlay }: { src: string; isHovered: boolean; shouldPlay: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasLoaded, setHasLoaded] = useState(shouldPlay);
 
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    if (shouldPlay) setHasLoaded(true);
+  }, [shouldPlay]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (shouldPlay) v.play().catch(() => null);
+    else v.pause();
+  }, [shouldPlay, hasLoaded]);
 
   return (
-    <div ref={wrapRef} className="absolute inset-0">
-      {inView && (
+    <div className="absolute inset-0">
+      {hasLoaded && (
         <video
+          ref={videoRef}
           src={src}
-          autoPlay
           loop
           muted
           playsInline
@@ -74,6 +80,38 @@ export function DynamicFrameLayout({
   overlay,
 }: DynamicFrameLayoutProps) {
   const [hovered, setHovered] = useState<number | null>(null);
+  const isDesktop = useIsDesktop();
+  const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [mostVisibleId, setMostVisibleId] = useState<number | null>(null);
+
+  // Decoding video is expensive — on desktop only the hovered tile ever played
+  // anyway, but on mobile there's no hover, and playing all 9 tiles at once
+  // tanks the frame rate. Track which single tile is most visible and only
+  // that one actually plays; everything else stays paused/unloaded.
+  useEffect(() => {
+    if (isDesktop) return;
+    const ratios = new Map<number, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const id = Number((entry.target as HTMLElement).dataset.frameId);
+          ratios.set(id, entry.intersectionRatio);
+        });
+        let best: number | null = null;
+        let bestRatio = 0.3; // require meaningful visibility before switching
+        ratios.forEach((ratio, id) => {
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            best = id;
+          }
+        });
+        if (best !== null) setMostVisibleId(best);
+      },
+      { threshold: [0, 0.25, 0.5, 0.75, 1] }
+    );
+    tileRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [isDesktop, frames.length]);
 
   const rows: Frame[][] = [];
   for (let i = 0; i < frames.length; i += cols) {
@@ -108,14 +146,20 @@ export function DynamicFrameLayout({
             {row.map((frame, ci) => {
               const globalIndex = ri * cols + ci;
               const isActive = frame.id === hovered;
+              const shouldPlay = isDesktop || frame.id === mostVisibleId;
               return (
                 <div
                   key={frame.id}
+                  ref={(el) => {
+                    if (el) tileRefs.current.set(frame.id, el);
+                    else tileRefs.current.delete(frame.id);
+                  }}
+                  data-frame-id={frame.id}
                   className="relative cursor-pointer overflow-hidden rounded-xl bg-neutral-900"
                   onMouseEnter={() => setHovered(frame.id)}
                   onMouseLeave={() => setHovered(null)}
                 >
-                  <HoverVideo src={frame.video} isHovered={isActive} />
+                  <GridVideo src={frame.video} isHovered={isActive} shouldPlay={shouldPlay} />
                   {overlay?.(frame, globalIndex)}
                 </div>
               );
