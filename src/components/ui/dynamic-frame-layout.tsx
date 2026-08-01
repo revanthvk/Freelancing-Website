@@ -42,8 +42,17 @@ function GridVideo({ src, isHovered, shouldPlay }: { src: string; isHovered: boo
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (shouldPlay) v.play().catch(() => null);
-    else v.pause();
+    if (shouldPlay) {
+      // Mobile browsers are inconsistent about honoring a scripted play()
+      // right after mount — retry once the video actually has data if the
+      // first attempt was rejected, rather than silently giving up.
+      const tryPlay = () => v.play().catch(() => {});
+      tryPlay();
+      v.addEventListener("loadeddata", tryPlay);
+      return () => v.removeEventListener("loadeddata", tryPlay);
+    } else {
+      v.pause();
+    }
   }, [shouldPlay, hasLoaded]);
 
   return (
@@ -52,6 +61,7 @@ function GridVideo({ src, isHovered, shouldPlay }: { src: string; isHovered: boo
         <video
           ref={videoRef}
           src={src}
+          autoPlay
           loop
           muted
           playsInline
