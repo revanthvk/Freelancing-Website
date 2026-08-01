@@ -204,22 +204,7 @@ export function DynamicFrameLayout({
                   onMouseEnter={() => setHovered(frame.id)}
                   onMouseLeave={() => setHovered(null)}
                 >
-                  {isDesktop ? (
-                    <GridVideo src={frame.video} poster={frame.poster} isHovered={isActive} shouldPlay={shouldPlay} />
-                  ) : (
-                    // These clips run 5-31MB each — real mobile connections can take
-                    // many minutes to download that, so mobile gets the lightweight
-                    // still instead of ever requesting the video at all.
-                    <div className="absolute inset-0">
-                      <img
-                        src={frame.poster}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0" style={{ background: "rgba(5,5,5,0.6)" }} />
-                    </div>
-                  )}
+                  <GridVideo src={frame.video} poster={frame.poster} isHovered={isActive} shouldPlay={shouldPlay} />
                   {overlay?.(frame, globalIndex)}
                 </div>
               );
