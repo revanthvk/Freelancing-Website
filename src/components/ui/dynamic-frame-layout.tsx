@@ -126,35 +126,44 @@ export function DynamicFrameLayout({
   // "barely anything is moving." Cap it at a handful instead: enough tiles
   // active to feel alive, far fewer than 9 so it stays smooth. Desktop uses
   // hover for the single active tile; mobile has no hover, so track the
-  // top few most-visible tiles in the viewport instead.
+  // tiles closest to the viewport's vertical center instead.
+  //
+  // This deliberately isn't IntersectionObserver-ratio-based: once several
+  // tiles are simultaneously fully visible they all saturate at ratio 1.0,
+  // so a "sort by ratio" selection gets permanently stuck on whichever
+  // tiles reached 1.0 first and never updates again as you keep scrolling.
+  // Distance-from-center has no such ceiling and updates continuously.
   useEffect(() => {
     if (isDesktop) return;
-    const ratios = new Map<number, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const id = Number((entry.target as HTMLElement).dataset.frameId);
-          ratios.set(id, entry.intersectionRatio);
-        });
-        const top = Array.from(ratios.entries())
-          .filter(([, ratio]) => ratio > 0.2)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, MAX_CONCURRENT)
-          .map(([id]) => id);
-        if (top.length > 0) setVisibleIds(top);
-      },
-      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] }
-    );
-    tileRefs.current.forEach((el) => observer.observe(el));
-    // Fallback: if nothing crosses the threshold within a moment (e.g.
-    // small/short tiles on an unusual viewport), just play the first tile
-    // rather than leaving every video permanently blank.
-    const fallback = setTimeout(() => {
-      setVisibleIds((current) => (current.length > 0 ? current : frames[0] ? [frames[0].id] : []));
-    }, 1200);
+    let raf = 0;
+
+    const recompute = () => {
+      raf = 0;
+      const viewportCenter = window.innerHeight / 2;
+      const withDistance: { id: number; dist: number }[] = [];
+      tileRefs.current.forEach((el, id) => {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) return; // fully off-screen
+        const tileCenter = r.top + r.height / 2;
+        withDistance.push({ id, dist: Math.abs(tileCenter - viewportCenter) });
+      });
+      withDistance.sort((a, b) => a.dist - b.dist);
+      const top = withDistance.slice(0, MAX_CONCURRENT).map((t) => t.id);
+      if (top.length > 0) setVisibleIds(top);
+    };
+
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(recompute);
+    };
+
+    recompute();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
-      observer.disconnect();
-      clearTimeout(fallback);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [isDesktop, frames]);
 
