@@ -175,7 +175,7 @@ export function Pricing() {
       {/* Sparkles background — only mounted while the section is in view */}
       {sparklesVisible && (
         <Sparkles
-          density={600}
+          density={280}
           direction="bottom"
           speed={0.8}
           color="#38BDF8"
