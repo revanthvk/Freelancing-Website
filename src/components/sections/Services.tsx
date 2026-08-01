@@ -144,17 +144,18 @@ export function Services() {
   );
 }
 
-/* ── Luma CDN videos for DynamicFrameLayout ─────────────────────────────── */
+/* ── Luma CDN videos for DynamicFrameLayout — each is 5-31MB, so mobile shows
+   the lightweight poster stills instead of downloading video at all ────── */
 const DEMO_FRAMES = [
-  { id: 1, video: "https://videos.pexels.com/video-files/6804117/6804117-uhd_2732_1440_25fps.mp4" },
-  { id: 2, video: "https://static.cdn-luma.com/files/58ab7363888153e3/WebGL%20Exported%20(1).mp4" },
-  { id: 3, video: "https://videos.pexels.com/video-files/34129037/14471988_2560_1440_30fps.mp4" },
-  { id: 4, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Exported%20Web%20Video.mp4" },
-  { id: 5, video: "https://videos.pexels.com/video-files/5028622/5028622-uhd_2560_1440_25fps.mp4" },
-  { id: 6, video: "https://videos.pexels.com/video-files/7947489/7947489-hd_1920_1080_30fps.mp4" },
-  { id: 7, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Illustration%20Exported%20(1).mp4" },
-  { id: 8, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Art%20Direction%20Exported.mp4" },
-  { id: 9, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Product%20Video.mp4" },
+  { id: 1, video: "https://videos.pexels.com/video-files/6804117/6804117-uhd_2732_1440_25fps.mp4", poster: "/service-posters/service-1.jpg" },
+  { id: 2, video: "https://static.cdn-luma.com/files/58ab7363888153e3/WebGL%20Exported%20(1).mp4", poster: "/service-posters/service-2.jpg" },
+  { id: 3, video: "https://videos.pexels.com/video-files/34129037/14471988_2560_1440_30fps.mp4", poster: "/service-posters/service-3.jpg" },
+  { id: 4, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Exported%20Web%20Video.mp4", poster: "/service-posters/service-4.jpg" },
+  { id: 5, video: "https://videos.pexels.com/video-files/5028622/5028622-uhd_2560_1440_25fps.mp4", poster: "/service-posters/service-5.jpg" },
+  { id: 6, video: "https://videos.pexels.com/video-files/7947489/7947489-hd_1920_1080_30fps.mp4", poster: "/service-posters/service-6.jpg" },
+  { id: 7, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Illustration%20Exported%20(1).mp4", poster: "/service-posters/service-7.jpg" },
+  { id: 8, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Art%20Direction%20Exported.mp4", poster: "/service-posters/service-8.jpg" },
+  { id: 9, video: "https://static.cdn-luma.com/files/58ab7363888153e3/Product%20Video.mp4", poster: "/service-posters/service-9.jpg" },
 ];
 
 const SVC_LABELS = [

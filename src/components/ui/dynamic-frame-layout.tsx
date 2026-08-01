@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface Frame {
   id: number;
   video: string;
+  poster: string;
 }
 
 interface DynamicFrameLayoutProps {
@@ -18,7 +19,11 @@ interface DynamicFrameLayoutProps {
 }
 
 function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(true);
+  // Starts as `null` ("not yet known") rather than defaulting to true —
+  // these video files are 5-31MB each, so guessing "desktop" for even one
+  // render on a mobile device is enough to kick off a real fetch. Callers
+  // treat null the same as mobile (poster only) until this resolves.
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     setIsDesktop(mq.matches);
@@ -31,7 +36,7 @@ function useIsDesktop() {
 
 /** Loads and plays only once `shouldPlay` is true, and pauses (without
  * unmounting, so it doesn't re-buffer) once it's no longer the active tile. */
-function GridVideo({ src, isHovered, shouldPlay }: { src: string; isHovered: boolean; shouldPlay: boolean }) {
+function GridVideo({ src, poster, isHovered, shouldPlay }: { src: string; poster: string; isHovered: boolean; shouldPlay: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasLoaded, setHasLoaded] = useState(shouldPlay);
 
@@ -61,6 +66,7 @@ function GridVideo({ src, isHovered, shouldPlay }: { src: string; isHovered: boo
         <video
           ref={videoRef}
           src={src}
+          poster={poster}
           autoPlay
           loop
           muted
@@ -198,7 +204,22 @@ export function DynamicFrameLayout({
                   onMouseEnter={() => setHovered(frame.id)}
                   onMouseLeave={() => setHovered(null)}
                 >
-                  <GridVideo src={frame.video} isHovered={isActive} shouldPlay={shouldPlay} />
+                  {isDesktop ? (
+                    <GridVideo src={frame.video} poster={frame.poster} isHovered={isActive} shouldPlay={shouldPlay} />
+                  ) : (
+                    // These clips run 5-31MB each — real mobile connections can take
+                    // many minutes to download that, so mobile gets the lightweight
+                    // still instead of ever requesting the video at all.
+                    <div className="absolute inset-0">
+                      <img
+                        src={frame.poster}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0" style={{ background: "rgba(5,5,5,0.6)" }} />
+                    </div>
+                  )}
                   {overlay?.(frame, globalIndex)}
                 </div>
               );
