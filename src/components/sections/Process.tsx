@@ -1,7 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform, type MotionValue } from "framer-motion";
+
+/** Tracks the `md` breakpoint so the desktop and mobile Process animations —
+ * which both stay mounted, since CSS `hidden` doesn't stop JS — can skip
+ * their per-frame DOM work for whichever variant isn't actually visible. */
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    setIsDesktop(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
+}
 
 /* ── Data ────────────────────────────────────────────────────────────────── */
 const STEPS = [
@@ -75,20 +90,23 @@ function AnimatedDot({ x, y, progress, threshold }: { x: number; y: number; prog
 }
 
 /* ── Comet that travels along the path, synced to scroll progress ──────── */
-function Comet({ progress, pathRef }: { progress: MotionValue<number>; pathRef: React.RefObject<SVGPathElement | null> }) {
+function Comet({ progress, pathRef, active }: { progress: MotionValue<number>; pathRef: React.RefObject<SVGPathElement | null>; active: boolean }) {
   const gRef = useRef<SVGGElement>(null);
+  const totalRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!active) return;
     const unsub = progress.on("change", (v) => {
       const path = pathRef.current;
       const g = gRef.current;
       if (!path || !g) return;
-      const total = path.getTotalLength();
-      const pt = path.getPointAtLength(Math.max(0, Math.min(1, v)) * total);
+      // getTotalLength() recomputes path geometry — cache it, the path shape never changes
+      if (totalRef.current === null) totalRef.current = path.getTotalLength();
+      const pt = path.getPointAtLength(Math.max(0, Math.min(1, v)) * totalRef.current);
       g.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
     });
     return unsub;
-  }, [progress, pathRef]);
+  }, [progress, pathRef, active]);
 
   return (
     <g ref={gRef} transform={`translate(${DOTS[0].x}, ${DOTS[0].y})`}>
@@ -121,20 +139,22 @@ for (let i = 0; i < DOTS_M.length - 1; i++) {
 const PATH_D_MOBILE = mobileSegments.join(" ");
 
 /* ── Mobile comet — same technique as desktop's Comet, walking the wavy path ── */
-function CometMobile({ progress, pathRef }: { progress: MotionValue<number>; pathRef: React.RefObject<SVGPathElement | null> }) {
+function CometMobile({ progress, pathRef, active }: { progress: MotionValue<number>; pathRef: React.RefObject<SVGPathElement | null>; active: boolean }) {
   const gRef = useRef<SVGGElement>(null);
+  const totalRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!active) return;
     const unsub = progress.on("change", (v) => {
       const path = pathRef.current;
       const g = gRef.current;
       if (!path || !g) return;
-      const total = path.getTotalLength();
-      const pt = path.getPointAtLength(Math.max(0, Math.min(1, v)) * total);
+      if (totalRef.current === null) totalRef.current = path.getTotalLength();
+      const pt = path.getPointAtLength(Math.max(0, Math.min(1, v)) * totalRef.current);
       g.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
     });
     return unsub;
-  }, [progress, pathRef]);
+  }, [progress, pathRef, active]);
 
   return (
     <g ref={gRef} transform={`translate(${DOTS_M[0].x}, ${DOTS_M[0].y})`}>
@@ -162,6 +182,8 @@ function AnimatedDotMobile({ num, progress, threshold }: { num: string; progress
 
 /* ── Component ───────────────────────────────────────────────────────────── */
 export function Process() {
+  const isDesktop = useIsDesktop();
+
   const ref = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.45"] });
@@ -244,7 +266,7 @@ export function Process() {
               <AnimatedDot key={i} x={d.x} y={d.y} progress={progress} threshold={THRESHOLDS[i]} />
             ))}
 
-            <Comet progress={progress} pathRef={pathRef} />
+            <Comet progress={progress} pathRef={pathRef} active={isDesktop} />
           </svg>
 
           {/* Step content blocks — always in the safe right-side content column */}
@@ -330,7 +352,7 @@ export function Process() {
               vectorEffect="non-scaling-stroke"
               style={{ pathLength: mobileProgress, filter: "drop-shadow(0 0 4px rgba(255,255,255,0.6))" }}
             />
-            <CometMobile progress={mobileProgress} pathRef={mobilePathRef} />
+            <CometMobile progress={mobileProgress} pathRef={mobilePathRef} active={!isDesktop} />
           </svg>
 
           <div className="space-y-8">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 import NumberFlow from "@number-flow/react";
@@ -141,6 +141,21 @@ export function Pricing() {
   const [isYearly, setIsYearly] = useState(false);
   const pricingRef = useRef<HTMLDivElement>(null);
 
+  // Sparkles run a continuous canvas animation — only render it while the
+  // section is actually on screen instead of burning CPU the whole time
+  // the visitor is anywhere else on the page.
+  const [sparklesVisible, setSparklesVisible] = useState(false);
+  useEffect(() => {
+    const el = pricingRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setSparklesVisible(entry.isIntersecting),
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const revealVariants = {
     visible: (i: number) => ({
       y: 0,
@@ -157,14 +172,16 @@ export function Pricing() {
       className="dark-island relative overflow-hidden bg-black py-24 md:py-32"
       ref={pricingRef}
     >
-      {/* Sparkles background */}
-      <Sparkles
-        density={600}
-        direction="bottom"
-        speed={0.8}
-        color="#38BDF8"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 w-full [mask-image:radial-gradient(50%_50%,white,transparent_85%)]"
-      />
+      {/* Sparkles background — only mounted while the section is in view */}
+      {sparklesVisible && (
+        <Sparkles
+          density={600}
+          direction="bottom"
+          speed={0.8}
+          color="#38BDF8"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 w-full [mask-image:radial-gradient(50%_50%,white,transparent_85%)]"
+        />
+      )}
 
       <div className="container-x relative">
         <article className="mx-auto mb-14 max-w-2xl space-y-3 text-center">
