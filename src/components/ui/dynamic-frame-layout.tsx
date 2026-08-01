@@ -98,7 +98,8 @@ export function DynamicFrameLayout({
   const [hovered, setHovered] = useState<number | null>(null);
   const isDesktop = useIsDesktop();
   const tileRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const [mostVisibleId, setMostVisibleId] = useState<number | null>(null);
+  const [visibleIds, setVisibleIds] = useState<number[]>([]);
+  const MAX_CONCURRENT = 3; // enough to feel alive without decoding all 9 at once
 
   // A stable-per-id ref callback matters here: an inline arrow function is a
   // new function every render, so React tears it down and reattaches it on
@@ -121,10 +122,11 @@ export function DynamicFrameLayout({
   }, []);
 
   // Decoding video is expensive, and playing all 9 tiles at once tanks the
-  // frame rate on any device. Desktop has real hover, so use that to pick
-  // the one active tile (defaulting to the first when nothing's hovered).
-  // Mobile has no hover and typically sees the grid one row at a time, so
-  // track whichever tile is most visible in the viewport instead.
+  // frame rate on any device — but playing just one at a time reads as
+  // "barely anything is moving." Cap it at a handful instead: enough tiles
+  // active to feel alive, far fewer than 9 so it stays smooth. Desktop uses
+  // hover for the single active tile; mobile has no hover, so track the
+  // top few most-visible tiles in the viewport instead.
   useEffect(() => {
     if (isDesktop) return;
     const ratios = new Map<number, number>();
@@ -134,24 +136,21 @@ export function DynamicFrameLayout({
           const id = Number((entry.target as HTMLElement).dataset.frameId);
           ratios.set(id, entry.intersectionRatio);
         });
-        let best: number | null = null;
-        let bestRatio = 0.3; // require meaningful visibility before switching
-        ratios.forEach((ratio, id) => {
-          if (ratio > bestRatio) {
-            bestRatio = ratio;
-            best = id;
-          }
-        });
-        if (best !== null) setMostVisibleId(best);
+        const top = Array.from(ratios.entries())
+          .filter(([, ratio]) => ratio > 0.2)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, MAX_CONCURRENT)
+          .map(([id]) => id);
+        if (top.length > 0) setVisibleIds(top);
       },
-      { threshold: [0, 0.25, 0.5, 0.75, 1] }
+      { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1] }
     );
     tileRefs.current.forEach((el) => observer.observe(el));
-    // Fallback: if nothing crosses the 0.3 threshold within a moment (e.g.
+    // Fallback: if nothing crosses the threshold within a moment (e.g.
     // small/short tiles on an unusual viewport), just play the first tile
     // rather than leaving every video permanently blank.
     const fallback = setTimeout(() => {
-      setMostVisibleId((current) => current ?? frames[0]?.id ?? null);
+      setVisibleIds((current) => (current.length > 0 ? current : frames[0] ? [frames[0].id] : []));
     }, 1200);
     return () => {
       observer.disconnect();
@@ -194,7 +193,7 @@ export function DynamicFrameLayout({
               const isActive = frame.id === hovered;
               const shouldPlay = isDesktop
                 ? frame.id === (hovered ?? frames[0].id)
-                : frame.id === mostVisibleId;
+                : visibleIds.includes(frame.id);
               return (
                 <div
                   key={frame.id}
