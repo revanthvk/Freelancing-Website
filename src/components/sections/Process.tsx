@@ -98,6 +98,52 @@ function Comet({ progress, pathRef }: { progress: MotionValue<number>; pathRef: 
   );
 }
 
+/* ── Mobile virtual canvas — narrow rail, one wave "row" per step. Stretched
+   non-uniformly (preserveAspectRatio="none") to match however tall the
+   stacked list actually renders, so the curve still lines up with steps
+   whose description text wraps to different lengths. ──────────────────── */
+const VW_M = 64;
+const ROW_H = 100;
+const CENTER_X = 32;
+const BULGE = 18; // how far the wave swings out from center each side
+const DOTS_M = STEPS.map((_, i) => ({ x: CENTER_X, y: (i + 0.5) * ROW_H }));
+const VH_M = ROW_H * STEPS.length;
+
+function wave(x: number, y1: number, y2: number, bulgeX: number) {
+  return `C ${bulgeX} ${y1 + (y2 - y1) * 0.25}, ${bulgeX} ${y1 + (y2 - y1) * 0.75}, ${x} ${y2}`;
+}
+
+const mobileSegments: string[] = [`M ${DOTS_M[0].x} ${DOTS_M[0].y}`];
+for (let i = 0; i < DOTS_M.length - 1; i++) {
+  const bulgeX = CENTER_X + (i % 2 === 0 ? BULGE : -BULGE);
+  mobileSegments.push(wave(DOTS_M[i + 1].x, DOTS_M[i].y, DOTS_M[i + 1].y, bulgeX));
+}
+const PATH_D_MOBILE = mobileSegments.join(" ");
+
+/* ── Mobile comet — same technique as desktop's Comet, walking the wavy path ── */
+function CometMobile({ progress, pathRef }: { progress: MotionValue<number>; pathRef: React.RefObject<SVGPathElement | null> }) {
+  const gRef = useRef<SVGGElement>(null);
+
+  useEffect(() => {
+    const unsub = progress.on("change", (v) => {
+      const path = pathRef.current;
+      const g = gRef.current;
+      if (!path || !g) return;
+      const total = path.getTotalLength();
+      const pt = path.getPointAtLength(Math.max(0, Math.min(1, v)) * total);
+      g.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+    });
+    return unsub;
+  }, [progress, pathRef]);
+
+  return (
+    <g ref={gRef} transform={`translate(${DOTS_M[0].x}, ${DOTS_M[0].y})`}>
+      <circle r="9" fill="#ffffff" opacity="0.18" />
+      <circle r="4" fill="#ffffff" />
+    </g>
+  );
+}
+
 /* ── Mobile dot — same pulse/brighten behavior as the desktop AnimatedDot,
    but as an HTML circle sitting inline in the stacked list ─────────────── */
 function AnimatedDotMobile({ num, progress, threshold }: { num: string; progress: MotionValue<number>; threshold: number }) {
@@ -122,9 +168,9 @@ export function Process() {
   const progress = useSpring(scrollYProgress, { stiffness: 80, damping: 22, mass: 0.6 });
 
   const mobileRef = useRef<HTMLDivElement>(null);
+  const mobilePathRef = useRef<SVGPathElement>(null);
   const { scrollYProgress: mobileScrollYProgress } = useScroll({ target: mobileRef, offset: ["start 0.8", "end 0.5"] });
   const mobileProgress = useSpring(mobileScrollYProgress, { stiffness: 80, damping: 22, mass: 0.6 });
-  const cometTop = useTransform(mobileProgress, [0, 1], ["0%", "100%"]);
 
   // rough cumulative thresholds for the "lit" pulse on each dot
   const THRESHOLDS = [0.04, 0.22, 0.40, 0.58, 0.76, 0.95];
@@ -260,20 +306,32 @@ export function Process() {
           })}
         </div>
 
-        {/* ── Mobile — same scroll-synced comet/rail effect, straight vertical layout ── */}
+        {/* ── Mobile — same curved, comet-drawn path as desktop, adapted to a
+             narrow single-column layout. The SVG is stretched non-uniformly
+             (preserveAspectRatio="none") to fill however tall the step list
+             actually renders, so the curve tracks the real content height. ── */}
         <div ref={mobileRef} className="relative md:hidden">
-          {/* Ghost rail */}
-          <div className="absolute left-4 top-4 bottom-4 w-px bg-white/10" />
-          {/* Animated fill rail — draws downward in sync with scroll */}
-          <motion.div
-            className="absolute left-4 top-4 w-px origin-top bg-white/70"
-            style={{ height: "calc(100% - 2rem)", scaleY: mobileProgress }}
-          />
-          {/* Comet traveling down the rail */}
-          <motion.div
-            className="absolute left-4 z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-            style={{ top: cometTop, boxShadow: "0 0 10px 2px rgba(255,255,255,0.55)" }}
-          />
+          <svg
+            viewBox={`0 0 ${VW_M} ${VH_M}`}
+            preserveAspectRatio="none"
+            className="pointer-events-none absolute top-4 h-[calc(100%-2rem)] w-16 overflow-visible"
+            style={{ left: -16, zIndex: 0 }}
+          >
+            {/* Ghost full path */}
+            <path d={PATH_D_MOBILE} fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.12" vectorEffect="non-scaling-stroke" />
+            {/* Animated drawing path */}
+            <motion.path
+              ref={mobilePathRef}
+              d={PATH_D_MOBILE}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              style={{ pathLength: mobileProgress, filter: "drop-shadow(0 0 4px rgba(255,255,255,0.6))" }}
+            />
+            <CometMobile progress={mobileProgress} pathRef={mobilePathRef} />
+          </svg>
 
           <div className="space-y-8">
             {STEPS.map((step, i) => (
